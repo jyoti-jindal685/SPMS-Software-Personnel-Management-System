@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPMS — Software Personnel Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- =================== LOGIN =================== -->
+<div id="loginScreen">
+  <div class="login-bg-grid"></div>
+  <div class="login-wrap">
+    <div class="login-brand">
+      <div class="login-brand-logo">
+        <div class="login-brand-logo-icon">S</div>
+        SPMS
+      </div>
+      <div class="login-brand-sub">Software Personnel Management System</div>
+    </div>
+    <div class="login-card">
+      <h2>Welcome back</h2>
+      <p>Sign in to your workspace to continue</p>
+      <div class="login-tabs" id="loginTabs">
+        <button class="login-tab active" id="tab-admin" onclick="switchLoginTab('admin')">Admin</button>
+        <button class="login-tab" id="tab-employee" onclick="switchLoginTab('employee')">Employee</button>
+      </div>
+
+      <!-- Demo credentials hint -->
+      <!-- <div id="demoCreds" style="margin-bottom:18px;padding:12px 14px;background:rgba(110,90,255,0.08);border:1px solid rgba(110,90,255,0.2);border-radius:10px;font-size:.8rem;color:var(--text2)">
+        <div id="adminCreds"><strong style="color:var(--accent2)">Admin:</strong> username <code style="color:var(--teal);background:rgba(0,221,176,0.1);padding:1px 6px;border-radius:4px">admin</code> &nbsp; password <code style="color:var(--amber);background:rgba(255,184,48,0.1);padding:1px 6px;border-radius:4px">admin123</code></div>
+        <div id="empCreds" style="display:none"><strong style="color:var(--accent2)">Employee:</strong> username <code style="color:var(--teal);background:rgba(0,221,176,0.1);padding:1px 6px;border-radius:4px">emp001</code> &nbsp; password <code style="color:var(--amber);background:rgba(255,184,48,0.1);padding:1px 6px;border-radius:4px">pass123</code></div>
+      </div> -->
+
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="loginUser" placeholder="Enter your username" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <div style="position:relative">
+          <input type="password" id="loginPass" placeholder="Enter your password" autocomplete="current-password" style="padding-right:44px">
+          <button onclick="toggleLoginPassVis()" id="loginPassToggle" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:.9rem;padding:4px">👁</button>
+        </div>
+      </div>
+      <button class="btn-login" onclick="doLogin()">Sign In →</button>
+      <div class="login-error hidden" id="loginErr">❌ Invalid credentials. Please try again.</div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== APP =================== -->
+<div id="app">
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="s-logo"><div class="s-logo-icon">S</div>SPMS</div>
+        <div class="s-role" id="sidebarRole">Admin Panel</div>
+      </div>
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar">A</div>
+        <div class="user-info">
+          <div class="uname" id="sidebarName">Administrator</div>
+          <div class="urole" id="sidebarDesig">System Admin</div>
+        </div>
+      </div>
+      <div class="sidebar-clock">
+        <div class="clock-time" id="sidebarClock">--:--:--</div>
+        <div class="clock-date" id="sidebarDate">Loading...</div>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+      <div class="sidebar-bottom">
+        <button class="logout-btn" onclick="doLogout()">
+          <span>⬅</span> Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main" id="mainContent">
+
+      <!-- ====== ADMIN PAGES ====== -->
+
+      <!-- Admin Dashboard -->
+      <div class="page" id="pg-admin-dashboard">
+        <div class="page-header">
+          <div class="page-header-left">
+            <div class="page-title">Dashboard</div>
+            <div class="page-sub">Overview of all personnel and operations</div>
+          </div>
+        </div>
+        <div class="stat-grid" id="adminStats"></div>
+
+        <!-- Working Hours Widget -->
+        <div class="hours-widget">
+          <div class="hours-widget-header">
+            <div class="hw-icon">⏱</div>
+            <div>
+              <div class="hw-title">Live Working Hours</div>
+              <div style="font-size:.75rem;color:var(--text3)">Today's employee attendance tracker</div>
+            </div>
+            <div class="hw-live-clock" id="hwClock">--:--:--</div>
+          </div>
+          <div class="emp-hours-list" id="empHoursList"></div>
+        </div>
+
+        <!-- Leave Requests -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Pending Leave Requests</div>
+            <div class="dash-leave-count" id="pendingLeaveCount">0 pending</div>
+          </div>
+          <div id="dashLeavePanel" style="padding:12px"></div>
+        </div>
+
+      </div>
+
+      <!-- Admin Employees -->
+      <div class="page" id="pg-admin-employees">
+        <div class="page-header">
+          <div class="page-header-left">
+            <div class="page-title">Employees</div>
+            <div class="page-sub">Manage your workforce</div>
+          </div>
+          <button class="view-toggle-btn" id="empToggleBtn" onclick="toggleEmpView()">➕ Add Employee</button>
+        </div>
+
+        <!-- Employee List View (default) -->
+        <div class="section-view active" id="sv-emp-list">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">All Employees</div>
+              <div class="search-box"><span>🔍</span><input type="text" placeholder="Search by name or department..." oninput="filterEmpTable(this.value)"></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>Name</th><th>Department</th><th>Position</th><th>Joining</th><th>Salary</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="empListTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Employee Form View -->
+        <div class="section-view" id="sv-emp-form">
+          <div class="form-card">
+            <h3><span class="icon">👤</span> Add New Employee</h3>
+            <div class="form-grid" id="addEmpGrid">
+              <div class="fld"><label>Employee ID *</label><input type="text" id="nEmpId" placeholder="EMP004" required></div>
+              <div class="fld"><label>Full Name *</label><input type="text" id="nEmpName" placeholder="Full Name" required oninput="autoFillCredentials()"></div>
+              <div class="fld"><label>Date of Birth *</label><input type="date" id="nEmpDob" required></div>
+              <div class="fld"><label>Email *</label><input type="email" id="nEmpEmail" placeholder="email@company.com" required onblur="autoFillCredentials()"></div>
+              <div class="fld">
+                <label>Phone *</label>
+                <div class="phone-wrap">
+                  <div class="phone-prefix">🇮🇳 +91</div>
+                  <input type="tel" id="nEmpPhone" placeholder="9876543210" maxlength="10" required pattern="[0-9]{10}" onblur="autoFillCredentials()">
+                </div>
+              </div>
+              <div class="fld"><label>Department *</label>
+                <select id="nEmpDept" required onchange="updateLiveIdCard()">
+                  <option value="">Select Department</option>
+                  <option>Development</option><option>Design</option><option>Marketing</option>
+                  <option>Human Resources</option><option>Sales</option><option>Finance</option><option>Operations</option><option>QA & Testing</option>
+                </select>
+              </div>
+              <div class="fld"><label>Position *</label><input type="text" id="nEmpPos" placeholder="e.g. Senior Developer" required oninput="updateLiveIdCard()"></div>
+              <div class="fld"><label>Salary (₹) *</label><input type="number" id="nEmpSal" placeholder="50000" required min="1"></div>
+              <div class="fld"><label>Joining Date *</label><input type="date" id="nEmpJoin" required></div>
+              <div class="fld"><label>Status *</label>
+                <select id="nEmpStatus" required><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
+              </div>
+              <div class="fld">
+                <label>Username * <span class="auto-badge">✨ Auto</span></label>
+                <input type="text" id="nEmpUser" placeholder="Auto-generated" required>
+              </div>
+              <div class="fld">
+                <label>Password * <span class="auto-badge">✨ Auto</span></label>
+                <div style="position:relative">
+                  <input type="text" id="nEmpPass" placeholder="Auto-generated" required minlength="6" style="padding-right:44px">
+                  <button type="button" onclick="toggleEmpPassVis()" id="empPassToggle" title="Toggle visibility" style="position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:.9rem;padding:4px">🙈</button>
+                </div>
+              </div>
+              <div class="fld form-full"><label>Address *</label><textarea id="nEmpAddr" placeholder="Full address" required></textarea></div>
+              <div class="fld form-full">
+                <label>Photo (optional)</label>
+                <input type="file" id="nEmpPhoto" accept="image/*" onchange="previewPhoto(this,'nPhotoPreview');updateLiveIdCard()">
+                <img id="nPhotoPreview" style="width:70px;height:70px;border-radius:50%;object-fit:cover;margin-top:10px;display:none;border:2px solid var(--accent)">
+              </div>
+            </div>
+
+            <!-- Live ID Card Preview -->
+            <div id="liveIdCardWrap" style="display:none;margin-top:28px;padding-top:22px;border-top:1px solid var(--border)">
+              <div class="section-label" style="color:var(--teal)">🪪 Live ID Card Preview</div>
+              <div id="liveIdCard" class="id-card" style="max-width:320px"></div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-secondary" onclick="resetAddForm()">Reset</button>
+              <button class="btn btn-primary" onclick="addEmployee()">Add Employee</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Vacancies -->
+      <div class="page" id="pg-admin-vacancies">
+        <div class="page-header">
+          <div class="page-header-left">
+            <div class="page-title">Job Vacancies</div>
+            <div class="page-sub">Post and manage open positions</div>
+          </div>
+          <button class="view-toggle-btn" id="vacToggleBtn" onclick="toggleVacView()">➕ Add Vacancy</button>
+        </div>
+
+        <!-- Vacancy List View -->
+        <div class="section-view active" id="sv-vac-list">
+          <div class="vacancy-grid" id="vacancyGrid"></div>
+        </div>
+
+        <!-- Add Vacancy Form -->
+        <div class="section-view" id="sv-vac-form">
+          <div class="form-card">
+            <h3><span class="icon">💼</span> <span id="vacFormTitle">Post New Vacancy</span></h3>
+            <div class="form-grid">
+              <div class="fld"><label>Job Title *</label><input type="text" id="vTitle" placeholder="e.g. React Developer" required></div>
+              <div class="fld"><label>Department *</label>
+                <select id="vDept" required>
+                  <option value="">Select Department</option>
+                  <option>Development</option><option>Design</option><option>Marketing</option>
+                  <option>Human Resources</option><option>Sales</option><option>Finance</option><option>Operations</option><option>QA & Testing</option>
+                </select>
+              </div>
+              <div class="fld"><label>Location *</label><input type="text" id="vLoc" placeholder="e.g. Bangalore / Remote" required></div>
+              <div class="fld"><label>Salary Range *</label><input type="text" id="vSalary" placeholder="e.g. ₹8L - ₹12L" required></div>
+              <div class="fld"><label>Experience *</label><input type="text" id="vExp" placeholder="e.g. 2-4 years" required></div>
+              <div class="fld"><label>Type *</label>
+                <select id="vType" required>
+                  <option value="">Select Type</option>
+                  <option>Full-time</option><option>Part-time</option><option>Contract</option><option>Internship</option>
+                </select>
+              </div>
+              <div class="fld"><label>Last Date to Apply *</label><input type="date" id="vDeadline" required></div>
+              <div class="fld"><label>Openings *</label><input type="number" id="vOpenings" placeholder="3" required min="1"></div>
+              <div class="fld form-full"><label>Job Description *</label><textarea id="vDesc" placeholder="Describe the role and responsibilities..." required style="min-height:100px"></textarea></div>
+              <div class="fld form-full"><label>Requirements *</label><textarea id="vReq" placeholder="List the required skills and qualifications..." required style="min-height:80px"></textarea></div>
+            </div>
+            <input type="hidden" id="editVacancyIdx" value="">
+            <div class="form-actions">
+              <button class="btn btn-secondary" onclick="toggleVacView()">Cancel</button>
+              <button class="btn btn-primary" onclick="saveVacancy()">Post Vacancy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Leave Requests -->
+      <div class="page" id="pg-admin-leaves">
+        <div class="page-header">
+          <div class="page-header-left">
+            <div class="page-title">Leave Requests</div>
+            <div class="page-sub">Review and action employee leave applications</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">All Leave Applications</div>
+            <div id="allLeaveCount" class="dash-leave-count">0 pending</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="adminLeaveTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Tasks Management -->
+      <div class="page" id="pg-admin-tasks">
+        <div class="page-header">
+          <div class="page-header-left">
+            <div class="page-title">Task Management</div>
+            <div class="page-sub">Assign tasks and view employee responses</div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="page-tabs" id="taskPageTabs">
+          <button class="page-tab active" id="ptab-assign" onclick="switchTaskTab('assign')">📋 Assign Tasks</button>
+          <button class="page-tab" id="ptab-responses" onclick="switchTaskTab('responses')">💬 Employee Responses</button>
+        </div>
+
+        <!-- Assign Tasks Tab -->
+        <div id="task-tab-assign">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Assign by Department</div>
+              <!-- <div style="font-size:.8rem;color:var(--text3)">Select department → pick employee → assign task</div> -->
+            </div>
+            <div style="padding:20px">
+              <div class="dept-buttons" id="deptButtons"></div>
+              <div class="assign-emp-list" id="assignEmpList">
+                <div class="empty" style="padding:24px;grid-column:1/-1"><span class="empty-icon">👥</span>Select a department above</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Responses Tab -->
+        <div id="task-tab-responses" style="display:none">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">All Task Responses</div>
+              <div style="font-size:.8rem;color:var(--text3)" id="taskRespSubtitle">All employee task updates</div>
+            </div>
+            <div style="padding:16px" id="allTaskResponsesList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Reports -->
+      <div class="page" id="pg-admin-reports">
+        <div class="page-header">
+          <div class="page-header-left">
+            <div class="page-title">Reports & Analytics</div>
+            <div class="page-sub">Workforce insights and data</div>
+          </div>
+        </div>
+        <div class="stat-grid" id="reportStats"></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Department Distribution</div></div>
+            <div style="padding:20px" id="deptDistribution"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Attendance Summary (Today)</div></div>
+            <div style="padding:20px" id="attendanceSummary"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== EMPLOYEE PAGES ====== -->
+
+      <!-- Employee Dashboard -->
+      <div class="page" id="pg-emp-dashboard">
+        <div class="page-header">
+          <div class="page-header-left">
+            <div class="page-title" id="empDashGreet">Good Morning!</div>
+            <div class="page-sub" id="empDashSub">Here's your daily overview</div>
+          </div>
+        </div>
+
+        <div class="clock-widget">
+          <div class="clock-display">
+            <div class="ct" id="widgetTime">--:--</div>
+            <div class="cd" id="widgetDate">---</div>
+          </div>
+          <div class="clock-info">
+            <h3>Today's Attendance</h3>
+            <div class="clock-status">
+              <div class="clock-dot" id="clockDot"></div>
+              <span id="clockStatusText" style="font-size:.85rem;color:var(--text2)">Not clocked in</span>
+            </div>
+            <div class="clock-buttons">
+              <button class="btn btn-success btn-sm" onclick="clockIn()" id="btnClockIn">🟢 Clock In</button>
+              <button class="btn btn-danger btn-sm" onclick="clockOut()" id="btnClockOut" disabled>🔴 Clock Out</button>
+            </div>
+          </div>
+          <div class="today-hours">
+            <div class="th-label">Today's Hours</div>
+            <span id="todayHours">—</span>
+          </div>
+        </div>
+
+        <div class="stat-grid" id="empStats"></div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">My Recent Attendance</div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
+              <tbody id="empAttTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Employee Profile -->
+      <div class="page" id="pg-emp-profile">
+        <div class="page-header">
+          <div class="page-header-left">
+            <div class="page-title">My Profile</div>
+            <div class="page-sub">Your employee ID card and details</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:start;flex-wrap:wrap">
+          <div>
+            <div id="idCardWrap"></div>
+            <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="downloadIdCard()">⬇️ Download ID Card</button>
+          </div>
+          <div class="card" style="margin-bottom:0">
+            <div class="card-header"><div class="card-title">Profile Details</div></div>
+            <div style="padding:22px">
+              <div id="profileDetails"></div>
+              <div class="divider"></div>
+              <div class="section-label" style="margin-top:16px">Update Profile Photo</div>
+              <input type="file" id="profilePhotoInput" accept="image/*" onchange="updateProfilePhoto(this)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Employee Leave -->
+      <div class="page" id="pg-emp-leave">
+        <div class="page-header">
+          <div class="page-header-left">
+            <div class="page-title">Leave</div>
+            <div class="page-sub">Apply for leave and track your requests</div>
+          </div>
+        </div>
+
+        <!-- Leave History first -->
+        <div class="card" id="leaveHistoryCard">
+          <div class="card-header">
+            <div class="card-title">My Leave History</div>
+            <button class="btn btn-primary btn-sm" onclick="toggleLeaveForm()">📝 Apply for Leave</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th><th>Reason</th></tr></thead>
+              <tbody id="empLeaveTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Leave Form (hidden by default) -->
+        <div id="leaveFormSection" style="display:none">
+          <div class="form-card">
+            <h3><span class="icon">📝</span> Apply for Leave</h3>
+            <div class="form-grid">
+              <div class="fld"><label>Leave Type *</label>
+                <select id="leaveType" required>
+                  <option value="">Select Type</option>
+                  <option>Casual Leave</option><option>Sick Leave</option>
+                  <option>Earned Leave</option><option>Maternity Leave</option>
+                  <option>Paternity Leave</option><option>Emergency Leave</option>
+                </select>
+              </div>
+              <div class="fld"><label>From Date *</label><input type="date" id="leaveFrom" required></div>
+              <div class="fld"><label>To Date *</label><input type="date" id="leaveTo" required></div>
+              <div class="fld"><label>Contact During Leave *</label>
+                <div class="phone-wrap">
+                  <div class="phone-prefix">🇮🇳 +91</div>
+                  <input type="tel" id="leaveContact" placeholder="9876543210" maxlength="10" required>
+                </div>
+              </div>
+              <div class="fld form-full"><label>Reason *</label><textarea id="leaveReason" placeholder="Describe your reason for leave..." required style="min-height:100px"></textarea></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-secondary" onclick="toggleLeaveForm()">Cancel</button>
+              <button class="btn btn-primary" onclick="submitLeave()">Submit Application</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Employee Work Log -->
+      <div class="page" id="pg-emp-worklog">
+        <div class="page-header">
+          <div class="page-header-left">
+            <div class="page-title">Work Log</div>
+            <div class="page-sub">Log and track your daily tasks</div>
+          </div>
+        </div>
+        <div class="form-card">
+          <h3><span class="icon">📌</span> Log Today's Work</h3>
+          <div class="form-grid">
+            <div class="fld"><label>Task Title *</label><input type="text" id="wlTask" placeholder="What did you work on?" required></div>
+            <div class="fld"><label>Hours Worked *</label><input type="number" id="wlHours" placeholder="e.g. 6.5" step="0.5" min="0.5" max="24" required></div>
+            <div class="fld"><label>Date *</label><input type="date" id="wlDate" required></div>
+            <div class="fld"><label>Category *</label>
+              <select id="wlCat" required>
+                <option value="">Select</option>
+                <option>Development</option><option>Design</option><option>Meetings</option>
+                <option>Review / QA</option><option>Documentation</option><option>Research</option><option>Other</option>
+              </select>
+            </div>
+            <div class="fld form-full"><label>Description *</label><textarea id="wlDesc" placeholder="Brief description of what you accomplished..." required style="min-height:80px"></textarea></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-secondary" onclick="resetWorkLog()">Reset</button>
+            <button class="btn btn-primary" onclick="submitWorkLog()">Save Log</button>
+          </div>
+        </div>
+        <div id="workLogEntries"></div>
+      </div>
+
+      <!-- Employee Tasks (assigned by admin) -->
+      <div class="page" id="pg-emp-tasks">
+        <div class="page-header">
+          <div class="page-header-left">
+            <div class="page-title">My Tasks</div>
+            <div class="page-sub">Tasks assigned by admin</div>
+          </div>
+        </div>
+        <div id="empTasksList"></div>
+      </div>
+
+      <!-- Employee Vacancies -->
+      <div class="page" id="pg-emp-vacancies">
+        <div class="page-header">
+          <div class="page-header-left">
+            <div class="page-title">Open Positions</div>
+            <div class="page-sub">Current job openings — refer someone or view details</div>
+          </div>
+        </div>
+        <div class="vacancy-grid" id="empVacancyGrid"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- =================== MODALS =================== -->
+
+<!-- Edit Employee Modal -->
+<div class="modal-overlay" id="editEmpModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3>✏️ Edit Employee</h3>
+      <button class="modal-close" onclick="closeModal('editEmpModal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <input type="hidden" id="editEmpIdx">
+      <div class="fld"><label>Employee ID</label><input type="text" id="eEmpId" required></div>
+      <div class="fld"><label>Full Name *</label><input type="text" id="eEmpName" required></div>
+      <div class="fld"><label>Date of Birth *</label><input type="date" id="eEmpDob" required></div>
+      <div class="fld"><label>Email *</label><input type="email" id="eEmpEmail" required></div>
+      <div class="fld"><label>Phone *</label>
+        <div class="phone-wrap"><div class="phone-prefix">🇮🇳 +91</div>
+        <input type="tel" id="eEmpPhone" maxlength="10" required pattern="[0-9]{10}"></div>
+      </div>
+      <div class="fld"><label>Department *</label>
+        <select id="eEmpDept" required>
+          <option value="">Select</option>
+          <option>Development</option><option>Design</option><option>Marketing</option>
+          <option>Human Resources</option><option>Sales</option><option>Finance</option><option>Operations</option><option>QA & Testing</option>
+        </select>
+      </div>
+      <div class="fld"><label>Position *</label><input type="text" id="eEmpPos" required></div>
+      <div class="fld"><label>Salary (₹) *</label><input type="number" id="eEmpSal" required></div>
+      <div class="fld"><label>Joining Date *</label><input type="date" id="eEmpJoin" required></div>
+      <div class="fld"><label>Status *</label>
+        <select id="eEmpStatus" required><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
+      </div>
+      <div class="fld"><label>Username</label><input type="text" id="eEmpUser" required></div>
+      <div class="fld"><label>Password</label><input type="password" id="eEmpPass" placeholder="Leave blank to keep current"></div>
+      <div class="fld form-full"><label>Address *</label><textarea id="eEmpAddr" required></textarea></div>
+      <div class="fld form-full">
+        <label>Employee Photo</label>
+        <input type="file" id="eEmpPhoto" accept="image/*" onchange="previewPhoto(this,'ePhotoPreview')">
+        <img id="ePhotoPreview" style="width:70px;height:70px;border-radius:50%;object-fit:cover;margin-top:10px;display:none;border:2px solid var(--accent)">
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:22px">
+      <button class="btn btn-secondary" onclick="closeModal('editEmpModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditEmployee()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Vacancy Detail Modal (Admin - shows applicants) -->
+<div class="modal-overlay" id="vacDetailModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3 id="vacModalTitle">Job Details</h3>
+      <button class="modal-close" onclick="closeModal('vacDetailModal')">✕</button>
+    </div>
+    <div id="vacModalBody"></div>
+  </div>
+</div>
+
+<!-- Employee Vacancy Modal (refer / view) -->
+<div class="modal-overlay" id="empVacModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3 id="empVacModalTitle">Job Details</h3>
+      <button class="modal-close" onclick="closeModal('empVacModal')">✕</button>
+    </div>
+    <div id="empVacModalBody"></div>
+  </div>
+</div>
+
+<!-- Assign Task Modal -->
+<div class="modal-overlay" id="assignTaskModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3>📋 Assign Task</h3>
+      <button class="modal-close" onclick="closeModal('assignTaskModal')">✕</button>
+    </div>
+    <div id="assignTaskBody"></div>
+    <input type="hidden" id="assignTaskEmpId">
+    <div class="form-actions" style="margin-top:22px">
+      <button class="btn btn-secondary" onclick="closeModal('assignTaskModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAssignedTask()">Assign Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Task Response Modal (employee) -->
+<div class="modal-overlay" id="taskResponseModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3>💬 Task Response</h3>
+      <button class="modal-close" onclick="closeModal('taskResponseModal')">✕</button>
+    </div>
+    <div id="taskResponseBody"></div>
+    <input type="hidden" id="taskResponseIdx">
+    <div class="form-actions" style="margin-top:22px">
+      <button class="btn btn-secondary" onclick="closeModal('taskResponseModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitTaskResponse()">Submit Response</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Deadline Modal -->
+<div class="modal-overlay" id="editDeadlineModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-hdr">
+      <h3>📅 Change Deadline</h3>
+      <button class="modal-close" onclick="closeModal('editDeadlineModal')">✕</button>
+    </div>
+    <div class="fld" style="margin-bottom:16px">
+      <label>New Deadline Date</label>
+      <input type="date" id="newDeadlineDate">
+    </div>
+    <input type="hidden" id="deadlineTaskEmpId">
+    <input type="hidden" id="deadlineTaskIdx">
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal('editDeadlineModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDeadlineChange()">Update Deadline</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
